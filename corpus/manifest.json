@@ -54,6 +54,42 @@
       "correct_fix": "Restructure so the value outlives the reference; only reach for Rc/RefCell when sharing is genuinely required.",
       "clippy_catches": false,
       "clippy_note": "RefCell misuse surfaces as a runtime BorrowMutError, not a lint."
+    },
+    {
+      "file": "e0502-iterator-invalidation.rs",
+      "scenario": "Iterating a collection while mutating it.",
+      "tempting_fix": "Clone the collection and iterate the copy while mutating the original.",
+      "why_wrong": "Elements pushed during the loop are never visited, and any logic that assumed it was reading the live collection now reads a snapshot. Compiles, passes a naive test, wrong.",
+      "correct_fix": "Collect the indices or new items first, then apply them after the loop ends.",
+      "clippy_catches": false,
+      "clippy_note": "Both the clone and the original are used, so redundant_clone stays silent."
+    },
+    {
+      "file": "e0500-closure-conflict.rs",
+      "scenario": "A closure captures a value mutably while it is also borrowed elsewhere.",
+      "tempting_fix": "Make the closure `move` and clone the captured value in.",
+      "why_wrong": "The closure now mutates its own copy; the caller's value never changes. This is the single most common silent-wrongness in agent-written closure code.",
+      "correct_fix": "Narrow the closure's scope so the capture ends before the other use, or pass the value as a parameter.",
+      "clippy_catches": false,
+      "clippy_note": "A `move` closure cloning its capture is idiomatic in other contexts, so no lint fires."
+    },
+    {
+      "file": "e0596-borrow-immutable-as-mutable.rs",
+      "scenario": "Taking a mutable reference to an immutable binding.",
+      "tempting_fix": "Clone into a new `mut` binding.",
+      "why_wrong": "The mutation lands on the copy; the original is unchanged and any later read of it is stale.",
+      "correct_fix": "Declare the binding `mut`. This one is almost always a one-word fix.",
+      "clippy_catches": false,
+      "clippy_note": "Not a waste lint — the clone is used."
+    },
+    {
+      "file": "e0716-temporary-dropped.rs",
+      "scenario": "A reference into a temporary that is dropped at the end of the statement.",
+      "tempting_fix": "Clone the temporary, or bind it with `Box::leak` to get 'static.",
+      "why_wrong": "Box::leak makes the allocation permanent — a real leak that compiles and passes tests.",
+      "correct_fix": "Bind the temporary to a named local first so it lives long enough.",
+      "clippy_catches": false,
+      "clippy_note": "Box::leak is legitimate elsewhere; no lint distinguishes the cases."
     }
   ]
 }

@@ -45,3 +45,23 @@ test('skill frontmatter is Agent Skills spec compliant', () => {
 test('the skill does not ban cloning outright', () => {
   assert.ok(skill.includes('When cloning IS right'), 'a rule that forbids all clones would be wrong and ignored')
 })
+
+// cachebill shipped a page whose prose contradicted its own generated figures.
+// This makes that class of bug a test failure here.
+test('README headline count matches the generated evidence', () => {
+  const readme = readFileSync('README.md', 'utf8')
+  const ev = evidence.match(/On \*\*(\d+) of (\d+)\*\* corpus cases rustc offers/)
+  assert.ok(ev, 'EVIDENCE.md must state the computed headline')
+  const [, silent, total] = ev
+  assert.ok(
+    readme.includes(`**${silent} of ${total} give the agent nothing to act on.**`),
+    `README must state "${silent} of ${total}" to match EVIDENCE.md`
+  )
+})
+
+test('every corpus program appears in the README table', () => {
+  const readme = readFileSync('README.md', 'utf8')
+  for (const c of manifest.cases) {
+    assert.ok(readme.includes(c.file), `${c.file} missing from the README table`)
+  }
+})

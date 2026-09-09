@@ -2,22 +2,35 @@
 
 **Your coding agent doesn't fix borrow errors. It clones until the compiler stops complaining. Here is the compiler output that proves why.**
 
-Six Rust programs that fail to compile. Compiled with a real `rustc`, output read from
+Ten Rust programs that fail to compile. Compiled with a real `rustc`, output read from
 `--error-format=json`:
 
 | corpus case | rustc says | what it offers you |
 |---|---|---|
 | `e0502-cache-lookup.rs` | E0502 cannot borrow `*cache` as mutable | **nothing** |
-| `e0382-use-after-move.rs` | E0382 borrow of moved value | `help`: *consider cloning the value* |
 | `e0499-two-mut-borrows.rs` | E0499 cannot borrow `v` as mutable more than once | **nothing** |
 | `e0506-assign-to-borrowed.rs` | E0506 cannot assign to `cfg.retries` | **nothing** |
 | `e0515-return-local-ref.rs` | E0515 cannot return reference to local | **nothing** |
 | `e0597-borrow-outlives.rs` | E0597 `inner` does not live long enough | **nothing** |
+| `e0502-iterator-invalidation.rs` | E0502 cannot borrow `items` as mutable | **nothing** |
+| `e0500-closure-conflict.rs` | E0502 cannot borrow `total` as immutable | **nothing** |
+| `e0382-use-after-move.rs` | E0382 borrow of moved value | `help`: *consider cloning the value* |
+| `e0596-borrow-immutable-as-mutable.rs` | E0596 not declared as mutable | `help`: *consider changing this to be mutable* ✅ |
+| `e0716-temporary-dropped.rs` | E0716 temporary value dropped while borrowed | `help`: *consider using a `let` binding* ✅ |
 
-**5 of 6 give the agent nothing to act on. The one that does says to clone.**
+**7 of 10 give the agent nothing to act on.**
 
-Clone is the move that always compiles. With no other guidance, it becomes the default.
-That is the mechanism behind clone-spam — a guidance vacuum, not laziness.
+Look at which three it does help with. E0596 and E0716 get correct, actionable advice —
+add `mut`, add a `let` binding. Those are *syntax* fixes: local, mechanical, one token.
+E0382 gets advice too, and that advice is to clone.
+
+Every case where the fix requires **restructuring ownership** — E0499, E0502, E0506,
+E0515, E0597 — gets silence. Those are exactly the cases where a clone compiles.
+
+So the compiler is helpful right up to the point where the problem becomes a design
+problem, and then it stops. Clone is the one move that always compiles. With no other
+guidance, it wins by default. That is the mechanism behind clone-spam — a guidance
+vacuum on precisely the hard cases, not laziness.
 
 ## Install
 
