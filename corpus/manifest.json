@@ -1,0 +1,59 @@
+{
+  "_comment": "Each case is compiled by scripts/extract.mjs. Error codes and hint ordering are NOT written here — they are read from the real compiler and written to EVIDENCE.md.",
+  "cases": [
+    {
+      "file": "e0502-cache-lookup.rs",
+      "scenario": "Read from a map, then insert into it while the read is still live.",
+      "tempting_fix": "Clone the looked-up value (or the whole entry) so the immutable borrow ends early.",
+      "why_wrong": "Allocates on every lookup on the hot path, and if the agent clones the map instead of the value, later reads silently observe a stale copy.",
+      "correct_fix": "End the borrow before the mutation — bind only what you need (a bool, a length, an owned key) inside a tight scope, or use the entry API.",
+      "clippy_catches": false,
+      "clippy_note": "The original is still used afterwards, so the clone is not redundant in clippy's sense."
+    },
+    {
+      "file": "e0382-use-after-move.rs",
+      "scenario": "A value is moved into a function, then used again by the caller.",
+      "tempting_fix": "Pass s.clone() to the function.",
+      "why_wrong": "Copies the whole value on every call when the callee only needed to read it.",
+      "correct_fix": "Change the parameter to &str / &String so nothing moves.",
+      "clippy_catches": false,
+      "clippy_note": "rustc itself suggests the clone as a `help` — see EVIDENCE.md."
+    },
+    {
+      "file": "e0499-two-mut-borrows.rs",
+      "scenario": "Two mutable borrows of the same collection are live at once.",
+      "tempting_fix": "Clone the collection so each borrow gets its own copy.",
+      "why_wrong": "The two halves of the code now mutate different objects; writes through one are invisible to the other. This compiles and is silently wrong.",
+      "correct_fix": "Sequence the borrows so only one is live at a time, or use split_at_mut / indices.",
+      "clippy_catches": false,
+      "clippy_note": "Both clones are used, so redundant_clone stays silent. This is the dangerous class."
+    },
+    {
+      "file": "e0506-assign-to-borrowed.rs",
+      "scenario": "A field is assigned while a reference into it is still live.",
+      "tempting_fix": "Copy the field into a local before assigning.",
+      "why_wrong": "For Copy types this is fine; for owned data the agent tends to clone the whole struct, and the reader then observes the pre-mutation snapshot.",
+      "correct_fix": "Read the value out (it is Copy here) or shorten the reference's lifetime to before the assignment.",
+      "clippy_catches": false,
+      "clippy_note": "Semantic, not a waste lint."
+    },
+    {
+      "file": "e0515-return-local-ref.rs",
+      "scenario": "A function returns a reference into a local.",
+      "tempting_fix": "Leak the string, or return a clone with a 'static bound via Box::leak.",
+      "why_wrong": "Box::leak turns a per-call allocation into a permanent one — a real memory leak that compiles and passes tests.",
+      "correct_fix": "Return the owned String, or take a buffer from the caller.",
+      "clippy_catches": false,
+      "clippy_note": "Box::leak is legitimate in other contexts, so no lint fires."
+    },
+    {
+      "file": "e0597-borrow-outlives.rs",
+      "scenario": "A reference outlives the scope of the value it points into.",
+      "tempting_fix": "Hoist the inner value out, or clone it into the outer binding.",
+      "why_wrong": "Cloning here is often correct — but agents also reach for Rc/RefCell, moving a compile-time error to a runtime panic.",
+      "correct_fix": "Restructure so the value outlives the reference; only reach for Rc/RefCell when sharing is genuinely required.",
+      "clippy_catches": false,
+      "clippy_note": "RefCell misuse surfaces as a runtime BorrowMutError, not a lint."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions: { contents: read }
+jobs:
+  evidence:
+    name: Re-derive evidence from the real compiler
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: dtolnay/rust-toolchain@stable
+      - run: bash scripts/dev.sh install
+      - run: bash scripts/dev.sh test
+      # The claims must still match what rustc says today, not what it said when committed.
+      - name: EVIDENCE.md must match a fresh compile
+        run: |
+          bash scripts/dev.sh example
+          if ! git diff --quiet -- EVIDENCE.md; then
+            echo "::error::EVIDENCE.md drifted from real rustc output. Run: node scripts/extract.mjs"
+            git diff -- EVIDENCE.md
+            exit 1
+          fi
