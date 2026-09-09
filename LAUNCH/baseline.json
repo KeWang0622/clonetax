@@ -1,0 +1,8 @@
+{
+  "_comment": "Star baseline at publish. Re-run: gh api repos/KeWang0622/clonetax --jq .stargazers_count",
+  "recorded_at_utc": "2026-09-09T01:04:40Z",
+  "target": { "stars": 200, "within_days": 3 },
+  "baseline": { "clonetax": 0, "cachebill": 0 },
+  "author_reach_at_publish": { "github_followers": 44, "public_x_handle": null },
+  "honest_note": "Median public launch is under 50 stars in week one. Craft is controlled; distribution is not. This file exists so the outcome is measured rather than asserted."
+}
